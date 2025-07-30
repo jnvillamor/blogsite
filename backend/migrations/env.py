@@ -11,8 +11,8 @@ import os
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(BASE_DIR)
 
-from app.db.session import Base
-from app.db.base import *
+from app.db.base import Base
+from app.models import *
 
 # Load environment variables from .env file
 load_dotenv(os.path.join(BASE_DIR, '.env'))
