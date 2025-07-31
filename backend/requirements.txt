@@ -6,3 +6,5 @@ uvicorn
 alembic
 dotenv
 passlib[bcrypt]
+PyJWT
+python-multipart
