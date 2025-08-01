@@ -26,3 +26,14 @@ class UserRepository:
     except Exception as e:
       self.db_session.rollback()
       raise e
+    
+  def change_password(self, user: User, new_password: str) -> User:
+    """Change the user's password."""
+    try:
+      user.hashed_password = new_password
+      self.db_session.commit()
+      self.db_session.refresh(user)
+      return user
+    except Exception as e:
+      self.db_session.rollback()
+      raise e

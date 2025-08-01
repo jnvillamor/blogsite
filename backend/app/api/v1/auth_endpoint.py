@@ -2,7 +2,7 @@ from fastapi import HTTPException, status, Depends, requests
 from fastapi.routing import APIRouter
 from fastapi.security import OAuth2PasswordRequestForm
 from app.schemas.user_schema import UserCreate, UserResponse
-from app.schemas.auth_schema import TokenResponse
+from app.schemas.auth_schema import TokenResponse, ChangePasswordRequest
 from app.db.base import SessionDep
 from app.services.auth_service import AuthService
 from app.models.user import User
@@ -70,4 +70,20 @@ def refresh_token(
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
   except Exception as e:
     print(f"Error during token refresh: {str(e)}")
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.put("/change-password", status_code=200)
+def change_password(
+  password_data: ChangePasswordRequest,
+  session: SessionDep,
+  user: User = Depends(get_current_user),
+):
+  """Change the password of the current user."""
+  try:
+    auth_service = AuthService(session)
+    user = auth_service.change_user_password(user, password_data.current_password, password_data.new_password)
+    
+    return {"detail": "Password changed successfully"}
+  except Exception as e:
+    print(f"Error changing password: {str(e)}")
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

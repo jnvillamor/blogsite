@@ -110,6 +110,17 @@ class AuthService:
     # Delete the refresh token from Redis
     self.redis_service.delete(f"refresh_token:{user.id}")
     return True
+  
+  def change_user_password(self, user: User, current_password: str, new_password: str) -> User:
+    """Change the user's password."""
+    if not self._verify_password(current_password, user.hashed_password):
+      raise ValueError("Current password is incorrect")
+    
+    # Encrypt the new password
+    encrypted_password = self._encrypt_password(new_password)
+    user = self.user_repository.change_password(user, encrypted_password)
+
+    return user
 
   def _create_tokens(self, user: User, type: Literal['access', 'refresh']) -> str:
     """Create JWT token for the user."""
