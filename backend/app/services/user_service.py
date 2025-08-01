@@ -1,7 +1,9 @@
 from app.models.user import User
 from app.services.auth_service import AuthService
 from app.repositories.user_respository import UserRepository
+from app.schemas.user_schema import UserUpdate
 from sqlalchemy.orm import Session
+from fastapi import HTTPException, status
 
 class UserService:
   def __init__(self, db_session: Session):
@@ -15,3 +17,17 @@ class UserService:
     if not user:
       raise ValueError("User not found")
     return user
+  
+  def update_user(self, current_user: User, user_id: str, user_data: UserUpdate) -> User:
+    """Update user information."""
+    user = self.get_user_by_id(user_id)
+    
+    # Only allow the current user to update their own information
+    if not user or current_user.id != user.id:
+      raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to update this user")
+    
+    # Update user fields
+    updated_user = self.user_repository.update_info(user, user_data)
+    
+    self.db_session.commit()
+    return updated_user

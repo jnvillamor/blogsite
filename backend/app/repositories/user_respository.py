@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models.user import User
+from app.schemas.user_schema import UserUpdate
 
 class UserRepository:
   def __init__(self, db_session: Session):
@@ -31,6 +32,20 @@ class UserRepository:
     """Change the user's password."""
     try:
       user.hashed_password = new_password
+      self.db_session.commit()
+      self.db_session.refresh(user)
+      return user
+    except Exception as e:
+      self.db_session.rollback()
+      raise e
+  
+  def update_info(self, user: User, user_data: UserUpdate) -> User:
+    """Update user information."""
+    try:
+      user.email = user_data.email or user.email
+      user.first_name = user_data.first_name or user.first_name
+      user.last_name = user_data.last_name or user.last_name
+      
       self.db_session.commit()
       self.db_session.refresh(user)
       return user

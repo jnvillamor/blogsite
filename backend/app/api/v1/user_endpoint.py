@@ -1,8 +1,8 @@
 from fastapi import HTTPException, status, Depends
 from fastapi.routing import APIRouter
-from app.schemas.user_schema import  UserResponse
 from app.db.base import SessionDep
 from app.api.dependencies import get_current_user
+from app.schemas.user_schema import  UserResponse, UserUpdate
 from app.services.user_service import UserService
 from app.models.user import User
 
@@ -29,5 +29,22 @@ def get_user_by_id(user_id: str, db_session: SessionDep):
       raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     
     return UserResponse.model_validate(user)
+  except Exception as e:
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.put("/{user_id}/update", response_model=UserResponse, status_code=200)
+def update_user(
+  db_session: SessionDep,
+  user_data: UserUpdate,
+  user_id: str,
+  current_user: User = Depends(get_current_user),
+):
+  """Update user information."""
+  try:
+    user_service = UserService(db_session)
+    updated_user = user_service.update_user(current_user, user_id, user_data)
+    return UserResponse.model_validate(updated_user)
+  except HTTPException as http_exc:
+    raise http_exc
   except Exception as e:
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
