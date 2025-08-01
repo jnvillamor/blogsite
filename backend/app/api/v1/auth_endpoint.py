@@ -27,13 +27,12 @@ def register_user(user: UserCreate, session: SessionDep):
 @router.post("/login", response_model=TokenResponse, status_code=200)
 def login_user(
   session: SessionDep,
-  req: requests.Request,
   form_data: OAuth2PasswordRequestForm = Depends()
 ):
   """Login a user and return access and refresh tokens."""
   try:
     auth_service = AuthService(session)
-    response = auth_service.authenticate_user(form_data, req)
+    response = auth_service.authenticate_user(form_data)
     
     return response
 
@@ -41,6 +40,19 @@ def login_user(
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
   except Exception as e:
     print(f"Error during login: {str(e)}")
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.post("/logout", status_code=204)
+def logout_user(
+  session: SessionDep,
+  user: User = Depends(get_current_user)
+):
+  try:
+    auth_service = AuthService(session)
+    auth_service.logout_user(user)
+    return {"detail": "Successfully logged out"}
+  except Exception as e:
+    print(f"Error during logout: {str(e)}")
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.get("/refresh", response_model=TokenResponse, status_code=200)
