@@ -1,7 +1,9 @@
 from sqlalchemy import Column, String, DateTime, func
 from sqlalchemy.dialects.postgresql import UUID
-from app.db.base import Base
+from sqlalchemy.orm import relationship
 import uuid
+
+from app.db.base import Base
 
 class User(Base):
   __tablename__ = "users"
@@ -13,6 +15,8 @@ class User(Base):
   hashed_password = Column(String, nullable=False)
   created_at = Column(DateTime(timezone=True), default=func.now(), nullable=False)
   updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now(), nullable=False)
+
+  blogs = relationship("Blog", back_populates="author", cascade="all, delete, delete-orphan", passive_deletes=True)
 
   def __repr__(self):
     return f"<User(id={self.id}, email={self.email}, first_name={self.first_name}, last_name={self.last_name})>"
