@@ -11,9 +11,23 @@ router = APIRouter(
 )
 
 @router.post("/me", response_model=UserResponse, status_code=201)
-async def current_user(user: User = Depends(get_current_user)):
+def current_user(user: User = Depends(get_current_user)):
   """Get the current user."""
   try:
+    return UserResponse.model_validate(user)
+  except Exception as e:
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.get("/{user_id}", response_model=UserResponse, status_code=200)
+def get_user_by_id(user_id: str, db_session: SessionDep):
+  """Get user by ID."""
+  try:
+    user_service = UserService(db_session)
+    user = user_service.get_user_by_id(user_id)
+    
+    if not user:
+      raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
     return UserResponse.model_validate(user)
   except Exception as e:
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
