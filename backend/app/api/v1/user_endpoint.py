@@ -2,7 +2,7 @@ from fastapi import HTTPException, status, Depends
 from fastapi.routing import APIRouter
 from app.db.base import SessionDep
 from app.api.dependencies import get_current_user
-from app.schemas.user_schema import  UserResponse, UserUpdate
+from app.schemas.user_schema import  UserResponse, UserUpdate, UserSimple
 from app.services.user_service import UserService
 from app.models.user import User
 
@@ -10,11 +10,11 @@ router = APIRouter(
   prefix="/users",
 )
 
-@router.post("/me", response_model=UserResponse, status_code=201)
+@router.post("/me", response_model=UserSimple, status_code=201)
 def current_user(user: User = Depends(get_current_user)):
   """Get the current user."""
   try:
-    return UserResponse.model_validate(user)
+    return UserSimple.model_validate(user)
   except Exception as e:
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -23,7 +23,7 @@ def get_user_by_id(user_id: str, db_session: SessionDep):
   """Get user by ID."""
   try:
     user_service = UserService(db_session)
-    user = user_service.get_user_by_id(user_id)
+    user = user_service.get_user_by_id(user_id, with_blogs=True)
     
     if not user:
       raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")

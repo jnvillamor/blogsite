@@ -1,5 +1,6 @@
-from pydantic import BaseModel
 from datetime import datetime
+from pydantic import BaseModel
+from typing import List
 from uuid import UUID
 
 class UserBase(BaseModel):
@@ -27,6 +28,11 @@ class UserResponse(UserBase):
   created_at: datetime
   updated_at: datetime
 
+  blogs: List["BlogSimple"] = []
+
   model_config = {
     "from_attributes": True,
   }
+
+from app.schemas.blog_schema import BlogSimple
+UserResponse.model_rebuild()

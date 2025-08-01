@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from typing import List
 
 from app.schemas.blog_schema import BlogCreate
 from app.models.blog import Blog
@@ -17,3 +18,7 @@ class BlogRepository:
     except Exception as e:
       self.db_session.rollback()
       raise e
+  
+  def get_by_user(self, user_id: str, limit: int = 5) -> List[Blog]:
+    """Retrieve all blogs by a specific user."""
+    return self.db_session.query(Blog).filter_by(author_id=user_id).limit(limit).all()

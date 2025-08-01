@@ -1,5 +1,6 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
+from typing import List
 from uuid import UUID
 
 from app.models.blog import Blog
@@ -28,3 +29,7 @@ class BlogService:
     
     blog = self.blog_repository.create(blog_data)
     return blog
+
+  def get_user_blogs(self, user_id: str, limit: int = 5) -> List[Blog]:
+    """Retrieve all blogs by a specific user."""
+    return self.blog_repository.get_by_user(user_id, limit)

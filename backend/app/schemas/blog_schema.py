@@ -1,8 +1,7 @@
+from __future__ import annotations
 from pydantic import BaseModel
 from uuid import UUID
 from datetime import datetime
-
-from .user_schema import UserSimple
 
 class BlogBase(BaseModel):
   title: str
@@ -16,14 +15,21 @@ class BlogSimple(BlogBase):
   created_at: datetime
   updated_at: datetime
 
+  model_config = {
+    "from_attributes": True,
+  }
+
 class BlogResponse(BlogBase):
   id: UUID
   author_id: UUID 
   created_at: datetime
   updated_at: datetime
 
-  author: UserSimple
+  author: "UserSimple"
 
   model_config = {
     "from_attributes": True,
   }
+
+from app.schemas.user_schema import UserSimple
+BlogResponse.model_rebuild()
