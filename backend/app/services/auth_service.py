@@ -1,11 +1,13 @@
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from typing import Literal
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import requests, responses
 import jwt
 
 from app.schemas.user_schema import UserCreate
+from app.schemas.auth_schema import TokenResponse
 from app.models.user import User
 from app.repositories.user_respository import UserRepository
 from app.core.config import settings
@@ -44,7 +46,7 @@ class AuthService:
     except Exception as e:
       raise e
     
-  def authenticate_user(self, credentials: OAuth2PasswordRequestForm) -> dict:
+  def authenticate_user(self, credentials: OAuth2PasswordRequestForm) -> responses.JSONResponse:
     """Authenticate a user and return tokens."""
     try:
       user = self.user_repository.get_by_email(credentials.username)
@@ -58,15 +60,63 @@ class AuthService:
       # Store refresh token in Redis with an expiration time
       self.redis_service.set(f"refresh_token:{user.id}", refresh_token, ex=self.jwt_refresh_token_ex)
 
-      return {
-        "user_id": user.id,
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "bearer"
-      }
+      response = responses.JSONResponse(content=TokenResponse(
+        user_id=str(user.id),
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer"
+      ).model_dump())
+
+      # Set the cookie for the refresh token
+      response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+      )
+
+      return response
     
     except Exception as e:
       raise e
+    
+  def refresh_user_token(self, user: User, req: requests.Request) -> responses.JSONResponse:
+    """Refresh the access token using the refresh token."""
+    try:
+      # Verify the refresh token from Redis
+      refresh_token = req.cookies.get("refresh_token")
+      
+      if not refresh_token or not self.redis_service.exists(f"refresh_token:{user.id}"):
+        raise ValueError("Invalid or expired refresh token")
+      
+      if not self.redis_service.get(f"refresh_token:{user.id}") == refresh_token:
+        raise ValueError("Refresh token mismatch")
+      
+      # Create a new access token
+      access_token = self._create_tokens(user, type='access')
+      refresh_token = self._create_tokens(user, type='refresh')
+      
+      # Update the refresh token in Redis
+      self.redis_service.set(f"refresh_token:{user.id}", refresh_token, ex=self.jwt_refresh_token_ex)
+      
+      response = responses.JSONResponse(content=TokenResponse(
+        user_id=str(user.id),
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer"
+      ).model_dump())
+      
+      # Set the cookie for the new refresh token
+      response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+      )
+      
+      return response
+      
+    except Exception as e:
+      raise e
+  
 
   def _create_tokens(self, user: User, type: Literal['access', 'refresh']) -> str:
     """Create JWT token for the user."""

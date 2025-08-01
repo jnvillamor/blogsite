@@ -31,4 +31,10 @@ class RedisService:
       self.redis.delete(key)
     except redis.RedisError as e:
       raise Exception(f"Redis error: {str(e)}") 
-  
+
+  def exists(self, key: str) -> bool:
+    """Check if a key exists in Redis."""
+    try:
+      return self.redis.exists(key)
+    except redis.RedisError as e:
+      raise Exception(f"Redis error: {str(e)}")
