@@ -8,3 +8,4 @@ dotenv
 passlib[bcrypt]
 PyJWT
 python-multipart
+redis

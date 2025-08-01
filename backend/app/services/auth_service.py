@@ -9,13 +9,17 @@ from app.schemas.user_schema import UserCreate
 from app.models.user import User
 from app.repositories.user_respository import UserRepository
 from app.core.config import settings
+from app.services.redis_service import RedisService
 
 class AuthService:
   def __init__(self, db_session: Session):
     self.db_session = db_session
     self.user_repository = UserRepository(db_session)
+    self.redis_service = RedisService()
     self.secret_key = settings.SECRET_KEY
     self.jwt_algorithm = settings.JWT_ALGORITHM
+    self.jwt_access_token_ex = settings.JWT_ACCESS_TOKEN_EX
+    self.jwt_refresh_token_ex = settings.JWT_REFRESH_TOKEN_EX
     self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
      
   def create_user(self, user_create: UserCreate) -> User:
@@ -51,6 +55,9 @@ class AuthService:
       access_token = self._create_tokens(user, type='access')
       refresh_token = self._create_tokens(user, type='refresh')
 
+      # Store refresh token in Redis with an expiration time
+      self.redis_service.set(f"refresh_token:{user.id}", refresh_token, ex=self.jwt_refresh_token_ex)
+
       return {
         "user_id": user.id,
         "access_token": access_token,
@@ -63,7 +70,7 @@ class AuthService:
 
   def _create_tokens(self, user: User, type: Literal['access', 'refresh']) -> str:
     """Create JWT token for the user."""
-    expiration = timedelta(hours=1) if type == 'access' else timedelta(days=7)
+    expiration = self.jwt_access_token_ex if type == 'access' else self.jwt_refresh_token_ex
     token_data = {
       "user_id": str(user.id),
       "exp": datetime.now(timezone.utc) + expiration,
