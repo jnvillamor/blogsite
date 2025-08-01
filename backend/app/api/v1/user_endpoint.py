@@ -2,7 +2,7 @@ from fastapi import HTTPException, status, Depends
 from fastapi.routing import APIRouter
 from app.schemas.user_schema import  UserResponse
 from app.db.base import SessionDep
-from app.db.dependencies import get_current_user
+from app.api.dependencies import get_current_user
 from app.services.user_service import UserService
 from app.models.user import User
 
