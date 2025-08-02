@@ -32,4 +32,15 @@ class BlogRepository:
     )
 
     return blogs, total
-  
+
+  def get_all(self, limit: int = 5, offset: int = 0) -> List[Blog]:
+    """Retrieve all blogs with pagination."""
+    total = self.db_session.query(Blog).count()
+    blogs = (
+      self.db_session.query(Blog)
+      .order_by(Blog.created_at.desc())
+      .limit(limit)
+      .offset(offset)
+      .all()
+    )
+    return blogs, total
