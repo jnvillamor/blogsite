@@ -29,15 +29,9 @@ class UserService:
 
     return user
 
-  def get_user_blogs(self, user_id: str, limit: int = 5, offset: int = 0) -> PaginatedResponse[BlogResponse]:
+  def get_user_blogs(self, user_id: str, limit: int = 5, offset: int = 0):
     """Retrieve all blogs by a specific user."""
-    blogs, total = self.blog_repository.get_by_user(user_id, limit, offset)
-    return PaginatedResponse[BlogResponse](
-      items=blogs, 
-      total=total,
-      limit=limit,
-      offset=offset
-    )
+    return self.blog_repository.get_by_user(user_id, limit, offset)
 
   def update_user(self, current_user: User, user_id: str, user_data: UserUpdate) -> User:
     """Update user information."""

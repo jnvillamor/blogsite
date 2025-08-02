@@ -44,7 +44,14 @@ def get_user_blogs(
   """Get all blogs by a specific user."""
   try:
     user_service = UserService(db_session)
-    return user_service.get_user_blogs(user_id, limit, offset)
+    blogs, total = user_service.get_user_blogs(user_id, limit, offset)
+    
+    return PaginatedResponse[BlogResponse](
+      items=[BlogResponse.model_validate(blog) for blog in blogs],
+      total=total,
+      limit=limit,
+      offset=offset
+    )
   except Exception as e:
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
