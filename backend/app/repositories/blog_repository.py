@@ -48,3 +48,15 @@ class BlogRepository:
       .all()
     )
     return blogs, total
+  
+  def update(self, blog: Blog, blog_data: BlogCreate) -> Blog:
+    """Update an existing blog post."""
+    try:
+      for key, value in blog_data.model_dump().items():
+        setattr(blog, key, value)
+      self.db_session.commit()
+      self.db_session.refresh(blog)
+      return blog
+    except Exception as e:
+      self.db_session.rollback()
+      raise e

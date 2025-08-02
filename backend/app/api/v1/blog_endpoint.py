@@ -5,7 +5,7 @@ from app.api.dependencies import get_current_user
 from app.db.base import SessionDep
 from app.models.user import User
 from app.services.blog_service import BlogService
-from app.schemas.blog_schema import BlogCreate, BlogResponse
+from app.schemas.blog_schema import BlogCreate, BlogResponse, BlogUpdate
 from app.schemas.shared_schema import PaginatedResponse
 
 router = APIRouter(
@@ -63,3 +63,19 @@ def get_blog_by_id(blog_id: str, session: SessionDep):
   except Exception as e:
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
       
+@router.put("/{blog_id}", response_model=BlogResponse, status_code=200)
+def update_blog(
+  blog_id: str,
+  blog_data: BlogUpdate,
+  session: SessionDep,
+  current_user: User = Depends(get_current_user),
+):
+  """Update a blog post."""
+  try:
+    blog_service = BlogService(session)
+    blog = blog_service.update_blog(blog_id, blog_data, current_user.id)
+    return BlogResponse.model_validate(blog)
+  except HTTPException as http_exc:
+    raise http_exc
+  except Exception as e:
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

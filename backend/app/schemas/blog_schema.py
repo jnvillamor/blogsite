@@ -10,6 +10,9 @@ class BlogBase(BaseModel):
 class BlogCreate(BlogBase):
   author_id: str
 
+class BlogUpdate(BlogCreate):
+  pass
+
 class BlogSimple(BlogBase):
   id: UUID
   created_at: datetime

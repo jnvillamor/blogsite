@@ -4,7 +4,7 @@ from uuid import UUID
 
 from app.models.blog import Blog
 from app.repositories.blog_repository import BlogRepository
-from app.schemas.blog_schema import BlogCreate
+from app.schemas.blog_schema import BlogCreate, BlogUpdate
 
 class BlogService:
   def __init__(self, db_session: Session):
@@ -39,3 +39,22 @@ class BlogService:
     if not blog:
       raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Blog not found")
     return blog
+  
+  def update_blog(self, blog_id: str, blog_data: BlogUpdate, user_id: UUID) -> Blog:
+    """Update an existing blog post."""
+    blog = self.get_blog_by_id(blog_id)
+
+    if blog_data.title is None or blog_data.content is None:
+      raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Title and content cannot be empty"
+      )
+
+    if blog_data.author_id != str(user_id):
+      raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="You can only update blogs for your own account"
+      )
+
+    updated_blog = self.blog_repository.update(blog, blog_data)
+    return updated_blog
