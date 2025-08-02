@@ -2,6 +2,8 @@ from fastapi import HTTPException, status, Depends
 from fastapi.routing import APIRouter
 from app.db.base import SessionDep
 from app.api.dependencies import get_current_user
+from app.schemas.blog_schema import BlogResponse
+from app.schemas.shared_schema import PaginatedResponse
 from app.schemas.user_schema import  UserResponse, UserUpdate, UserSimple
 from app.services.user_service import UserService
 from app.models.user import User
@@ -29,6 +31,20 @@ def get_user_by_id(user_id: str, db_session: SessionDep):
       raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     
     return UserResponse.model_validate(user)
+  except Exception as e:
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.get("/{user_id}/blogs", response_model=PaginatedResponse[BlogResponse], status_code=200)
+def get_user_blogs(
+  user_id: str,
+  db_session: SessionDep,
+  limit: int = 5,
+  offset: int = 0
+):
+  """Get all blogs by a specific user."""
+  try:
+    user_service = UserService(db_session)
+    return user_service.get_user_blogs(user_id, limit, offset)
   except Exception as e:
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 

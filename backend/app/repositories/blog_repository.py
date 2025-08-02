@@ -19,6 +19,17 @@ class BlogRepository:
       self.db_session.rollback()
       raise e
   
-  def get_by_user(self, user_id: str, limit: int = 5) -> List[Blog]:
+  def get_by_user(self, user_id: str, limit: int = 5, offset: int = 0) -> List[Blog]:
     """Retrieve all blogs by a specific user."""
-    return self.db_session.query(Blog).filter_by(author_id=user_id).limit(limit).all()
+    total = self.db_session.query(Blog).filter(Blog.author_id == user_id).count()
+    blogs = (
+      self.db_session.query(Blog)
+      .filter(Blog.author_id == user_id)
+      .order_by(Blog.created_at.desc())
+      .limit(limit)
+      .offset(offset)
+      .all()
+    )
+
+    return blogs, total
+  

@@ -3,15 +3,17 @@ from sqlalchemy.orm import Session
 
 from app.models.user import User
 from app.services.auth_service import AuthService
-from app.services.blog_service import BlogService
 from app.schemas.user_schema import UserUpdate
+from app.schemas.blog_schema import BlogResponse
+from app.schemas.shared_schema import PaginatedResponse
 from app.repositories.user_respository import UserRepository
+from app.repositories.blog_repository import BlogRepository
 
 class UserService:
   def __init__(self, db_session: Session):
     self.user_repository = UserRepository(db_session)
     self.auth_service = AuthService(db_session)
-    self.blog_service = BlogService(db_session)
+    self.blog_repository = BlogRepository(db_session)
     self.db_session = db_session
     
   def get_user_by_id(self, user_id: str, with_blogs: bool = False) -> User:
@@ -19,13 +21,24 @@ class UserService:
     user = self.user_repository.get_by_id(user_id)
 
     if with_blogs:
-      user.blogs = self.blog_service.get_user_blogs(user_id)
+      blogs, total = self.blog_repository.get_by_user(user_id)
+      user.blogs = blogs
 
     if not user:
       raise ValueError("User not found")
 
     return user
-  
+
+  def get_user_blogs(self, user_id: str, limit: int = 5, offset: int = 0) -> PaginatedResponse[BlogResponse]:
+    """Retrieve all blogs by a specific user."""
+    blogs, total = self.blog_repository.get_by_user(user_id, limit, offset)
+    return PaginatedResponse[BlogResponse](
+      items=blogs, 
+      total=total,
+      limit=limit,
+      offset=offset
+    )
+
   def update_user(self, current_user: User, user_id: str, user_data: UserUpdate) -> User:
     """Update user information."""
     user = self.get_user_by_id(user_id)
