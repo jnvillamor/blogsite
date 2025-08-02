@@ -32,6 +32,10 @@ class BlogRepository:
     )
 
     return blogs, total
+  
+  def get_by_id(self, blog_id: str) -> Blog:
+    """Retrieve a blog by its ID."""
+    return self.db_session.query(Blog).filter(Blog.id == blog_id).first()
 
   def get_all(self, limit: int = 5, offset: int = 0) -> List[Blog]:
     """Retrieve all blogs with pagination."""

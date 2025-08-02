@@ -4,8 +4,7 @@ from uuid import UUID
 
 from app.models.blog import Blog
 from app.repositories.blog_repository import BlogRepository
-from app.schemas.blog_schema import BlogCreate, BlogResponse
-from app.schemas.shared_schema import PaginatedResponse
+from app.schemas.blog_schema import BlogCreate
 
 class BlogService:
   def __init__(self, db_session: Session):
@@ -30,13 +29,13 @@ class BlogService:
     blog = self.blog_repository.create(blog_data)
     return blog
   
-  def get_blogs(self, limit: int = 5, offset: int = 0) -> PaginatedResponse[BlogResponse]:
+  def get_blogs(self, limit: int = 5, offset: int = 0):
     """Get all blogs with pagination."""
-    blogs, total = self.blog_repository.get_all(limit, offset)
-    return PaginatedResponse[BlogResponse](
-      items=blogs,
-      total=total,
-      limit=limit,
-      offset=offset
-    )
-      
+    return self.blog_repository.get_all(limit, offset)
+
+  def get_blog_by_id(self, blog_id: str) -> Blog:
+    """Get a blog by its ID."""
+    blog = self.blog_repository.get_by_id(blog_id)
+    if not blog:
+      raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Blog not found")
+    return blog

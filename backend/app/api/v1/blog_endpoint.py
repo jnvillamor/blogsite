@@ -37,9 +37,29 @@ def get_blogs(
   """Get all blogs"""
   try:
     blog_service = BlogService(session)
-    return blog_service.get_blogs(limit, offset)
+    blogs, total = blog_service.get_blogs(limit, offset)
+
+    return PaginatedResponse[BlogResponse](
+      items=blogs,
+      total=total,
+      limit=limit,
+      offset=offset
+    )
   except HTTPException as http_exc:
     raise http_exc
   except Exception as e:
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     
+@router.get("/{blog_id}", response_model=BlogResponse, status_code=200)
+def get_blog_by_id(blog_id: str, session: SessionDep):
+  """Get a blog by its ID."""
+  try:
+    blog_service = BlogService(session)
+    blog = blog_service.get_blog_by_id(blog_id)
+    
+    return BlogResponse.model_validate(blog)
+  except HTTPException as http_exc:
+    raise http_exc
+  except Exception as e:
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+      
