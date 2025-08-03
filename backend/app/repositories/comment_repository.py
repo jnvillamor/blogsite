@@ -119,3 +119,9 @@ class CommentRepository:
       setattr(comment, key, value)
     
     return comment
+  
+  def delete(self, comment_id: str):
+    """Delete a comment by its ID."""
+    comment, _ = self.get_by_id(comment_id)
+    
+    self.db.delete(comment)

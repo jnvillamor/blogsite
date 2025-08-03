@@ -77,3 +77,20 @@ def get_comment_replies(comment_id: str, db: SessionDep, limit: int = 10, offset
     raise http_exc
   except Exception as e:
     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+@router.delete("/{comment_id}", status_code=200)
+def delete_comment(
+  comment_id: str,
+  db: SessionDep,
+  current_user: User = Depends(get_current_user),
+):
+  """Delete a comment."""
+  try:
+    comment_service = CommentService(db)
+    comment_service.delete_comment(comment_id, current_user.id)
+    return {"detail": "Comment deleted successfully"}
+  except HTTPException as http_exc:
+    raise http_exc
+  except Exception as e:
+    print(f"Error deleting comment: {e}")
+    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

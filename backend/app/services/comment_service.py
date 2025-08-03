@@ -128,6 +128,26 @@ class CommentService:
     except Exception as e:
       print(f"Error updating comment: {e}")
       raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+  
+  def delete_comment(self, comment_id: str, author_id: UUID | str) -> None:
+    """Delete a comment."""
+    try:
+      comment = self.get_comment_or_404(comment_id)
+      if str(comment.get("author_id")) != str(author_id):
+        raise HTTPException(
+          status_code=status.HTTP_403_FORBIDDEN,
+          detail="You do not have permission to delete this comment"
+        )
+      self.comment_repository.delete(comment_id)
+      self.db_session.commit()
+
+    except HTTPException as http_exc:
+      self.db_session.rollback()
+      raise http_exc
+    except Exception as e:
+      print(f"Error deleting comment: {e}")
+      self.db_session.rollback()
+      raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
   def _validate_comment_data(self, data: CommentCreate | CommentUpdate) -> None:
     """Validate the comment data."""
