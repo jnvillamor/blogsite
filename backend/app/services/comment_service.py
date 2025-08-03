@@ -2,6 +2,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from uuid import UUID
 
+from app.models.comment import Comment
 from app.repositories.comment_repository import CommentRepository
 from app.services.blog_service import BlogService
 from app.services.user_service import UserService
@@ -17,7 +18,7 @@ class CommentService:
   def create_comment(
     self,
     data: CommentCreate,
-  ):
+  ) -> Comment:
     """Create a new comment on a blog post."""
     try:
       # Validate the comment data
@@ -42,7 +43,11 @@ class CommentService:
       print(f"Error creating comment: {e}")
       self.db_session.rollback()
       raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
-    
+
+  def get_blog_comments(self, blog_id: str, limit: int = 10, offset: int = 0):
+    """Get comments for a specific blog post."""
+    return self.comment_repository.get_top_level_comments(blog_id, limit, offset)
+
   def get_comment_or_404(self, comment_id: str):
     """Get a comment by its ID."""
     comment = self.comment_repository.get_by_id(comment_id)

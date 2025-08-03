@@ -115,3 +115,26 @@ def create_comment(
     raise http_exc
   except Exception as e:
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.get("/{blog_id}/comments", response_model=PaginatedResponse[CommentResponse], status_code=200)
+def get_comments(
+  blog_id: str,
+  session: SessionDep,
+  limit: int = 5,
+  offset: int = 0,
+):
+  """Get all comments for a blog post."""
+  try:
+    comment_service = CommentService(session)
+    comments, total = comment_service.get_blog_comments(blog_id, limit, offset)
+    
+    return PaginatedResponse[CommentResponse](
+      items=comments,
+      total=total,
+      limit=limit,
+      offset=offset
+    )
+  except HTTPException as http_exc:
+    raise http_exc
+  except Exception as e:
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
