@@ -43,6 +43,11 @@ class CommentService:
       print(f"Error creating comment: {e}")
       self.db_session.rollback()
       raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+  
+  def get_comments(self, limit: int = 10, offset: int = 0):
+    """Get a paginated list of comments."""
+    comments, total = self.comment_repository.get_all_top_level_comments(limit, offset)
+    return comments, total
 
   def get_blog_comments(self, blog_id: str, limit: int = 10, offset: int = 0):
     """Get comments for a specific blog post."""

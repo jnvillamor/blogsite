@@ -1,4 +1,5 @@
-from sqlalchemy.orm import Session
+from sqlalchemy import func
+from sqlalchemy.orm import Session, aliased
 
 from app.models.comment import Comment
 from app.schemas.comment_schema import CommentCreate
@@ -19,11 +20,58 @@ class CommentRepository:
   
   def get_top_level_comments(self, blog_id: str, limit: int = 10, offset: int = 0):
     """Get top-level comments for a specific blog post."""
-    query = ( 
-      self.db.query(Comment)
+    total = (
+      self.db.query(func.count(Comment.id))
+        .filter(Comment.blog_id == blog_id, Comment.parent_id == None)
+        .scalar()
+    )
+
+    ChildComment = aliased(Comment)
+
+    # Subquery to count replies for each top-level comment
+    subquery = (
+      self.db.query(func.count(ChildComment.id))
+        .filter(ChildComment.parent_id == Comment.id)
+        .correlate(Comment)
+        .scalar_subquery()
+    )
+
+    comments = (
+      self.db.query(Comment, subquery.label("reply_count"))
         .filter(Comment.blog_id == blog_id, Comment.parent_id == None)
         .order_by(Comment.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
     )
-    total = query.count()
-    comments = query.offset(offset).limit(limit).all()
+
+    return comments, total
+  
+  def get_all_top_level_comments(self, limit: int = 10, offset: int = 0):
+    """Get all comments with pagination."""
+    total = (
+      self.db.query(func.count(Comment.id))
+        .filter(Comment.parent_id == None)
+        .scalar()
+    )
+
+    ChildComment = aliased(Comment)
+
+    # Subquery to count replies for each top-level comment
+    subquery = (
+      self.db.query(func.count(ChildComment.id))
+        .filter(ChildComment.parent_id == Comment.id)
+        .correlate(Comment)
+        .scalar_subquery()
+    )
+
+    comments = (
+      self.db.query(Comment, subquery.label("reply_count"))
+        .filter(Comment.parent_id == None)
+        .order_by(Comment.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+
     return comments, total
