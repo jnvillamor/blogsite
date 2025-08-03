@@ -81,3 +81,32 @@ class CommentRepository:
     )
 
     return comments, total
+  
+  def get_comment_replies(self, comment_id: str, limit: int = 10, offset: int = 0):
+    """Get replies for a specific comment."""
+    total = (
+      self.db.query(func.count(Comment.id))
+        .filter(Comment.parent_id == comment_id)
+        .scalar()
+    )
+
+    ChildComment = aliased(Comment)
+    
+    # Subquery to count replies for each reply comment
+    subquery = (
+      self.db.query(func.count(ChildComment.id))
+        .filter(ChildComment.parent_id == Comment.id)
+        .correlate(Comment)
+        .scalar_subquery()
+    )
+
+    replies = (
+      self.db.query(Comment, subquery.label("reply_count"))
+        .filter(Comment.parent_id == comment_id)
+        .order_by(Comment.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+
+    return replies, total

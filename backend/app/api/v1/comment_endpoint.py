@@ -21,12 +21,7 @@ def get_comments(
     comments, total = comment_service.get_comments(limit=limit, offset=offset)
     
     return PaginatedResponse[CommentResponse](
-      items=[
-          CommentResponse.model_validate({
-          **comment.__dict__,
-          "reply_count": reply_count
-         }) for comment, reply_count in comments
-      ],
+      items=comments,
       total=total,
       limit=limit,
       offset=offset,
@@ -40,11 +35,26 @@ def get_comment(comment_id: str, db: SessionDep):
   """Get a comment by its ID."""
   try:
     comment_service = CommentService(db)
-    comment, reply_count = comment_service.get_comment_or_404(comment_id)
-    return CommentResponse.model_validate({
-      **comment.__dict__,
-      "reply_count": reply_count
-    })
+    comment = comment_service.get_comment_or_404(comment_id)
+    return CommentResponse.model_validate(comment)
   except Exception as e:
     print(f"Error fetching comment: {e}")
+    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+@router.get("/{comment_id}/replies", response_model=PaginatedResponse[CommentResponse])
+def get_comment_replies(comment_id: str, db: SessionDep, limit: int = 10, offset: int = 0):
+  """Get replies for a specific comment."""
+  try:
+    comment_service = CommentService(db)
+    replies, total = comment_service.get_comment_replies(comment_id, limit=limit, offset=offset)
+
+    return PaginatedResponse[CommentResponse](
+      items=replies,
+      total=total,
+      limit=limit,
+      offset=offset,
+    )
+  except HTTPException as http_exc:
+    raise http_exc
+  except Exception as e:
     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

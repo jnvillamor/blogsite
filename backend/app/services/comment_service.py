@@ -44,21 +44,54 @@ class CommentService:
       self.db_session.rollback()
       raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
   
-  def get_comments(self, limit: int = 10, offset: int = 0):
+  def get_comments(self, limit: int = 10, offset: int = 0) -> tuple:
     """Get a paginated list of comments."""
     comments, total = self.comment_repository.get_all_top_level_comments(limit, offset)
+    comments = [{
+      **comment.__dict__,
+      "reply_count": reply_count
+    } for comment, reply_count in comments]
+
     return comments, total
 
-  def get_blog_comments(self, blog_id: str, limit: int = 10, offset: int = 0):
+  def get_blog_comments(self, blog_id: str, limit: int = 10, offset: int = 0) -> tuple:
     """Get comments for a specific blog post."""
-    return self.comment_repository.get_top_level_comments(blog_id, limit, offset)
+    comments, total = self.comment_repository.get_top_level_comments(blog_id, limit, offset)
+    comments = [{
+      **comment.__dict__,
+      "reply_count": reply_count
+    } for comment, reply_count in comments]
+    
+    return comments, total
 
-  def get_comment_or_404(self, comment_id: str):
+  def get_comment_or_404(self, comment_id: str) -> dict:
     """Get a comment by its ID."""
     comment, reply_count = self.comment_repository.get_by_id(comment_id)
+    comment = {
+      **comment.__dict__,
+      "reply_count": reply_count
+    }
+
     if not comment:
       raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
-    return comment, reply_count
+
+    return comment
+  
+  def get_comment_replies(self, comment_id: str, limit: int = 10, offset: int = 0) -> tuple:
+    """Get replies for a specific comment."""
+    comment = self.get_comment_or_404(comment_id)
+    replies, total = self.comment_repository.get_comment_replies(
+      comment_id=comment.get("id"),
+      limit=limit,
+      offset=offset
+    )
+
+    replies = [{
+      **reply.__dict__,
+      "reply_count": reply_count
+    } for reply, reply_count in replies]
+
+    return replies, total
 
   def _validate_comment_data(self, data: CommentCreate) -> None:
     """Validate the comment data."""
@@ -76,9 +109,9 @@ class CommentService:
 
     parent_comment = None
     if parent_id:
-      parent_comment, _ = self.get_comment_or_404(parent_id)
+      parent_comment = self.get_comment_or_404(parent_id)
 
-      if str(parent_comment.blog_id) != blog_id:
+      if str(parent_comment.get("blog_id")) != blog_id:
         raise HTTPException(
           status_code=status.HTTP_400_BAD_REQUEST,
           detail="Parent comment does not belong to the specified blog"

@@ -129,12 +129,7 @@ def get_comments(
     comments, total = comment_service.get_blog_comments(blog_id, limit, offset)
     
     return PaginatedResponse[CommentResponse](
-      items=[
-        CommentResponse.model_validate({
-          **comment.__dict__,
-          "reply_count": reply_count
-          }) for comment, reply_count in comments
-      ],
+      items=comments,
       total=total,
       limit=limit,
       offset=offset
