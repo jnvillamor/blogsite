@@ -26,21 +26,28 @@ class AuthService:
      
   def create_user(self, user_create: UserCreate) -> User:
     """Create a new user in the database."""
-    # Check if the user email already exists
-    existing_user = self.user_repository.get_by_email(user_create.email)
+    try:
+      # Check if the user email already exists
+      existing_user = self.user_repository.get_by_email(user_create.email)
 
-    if existing_user:
-      raise ValueError("Email already registered")
-    
-    # Encrypt the password before saving
-    user_data = user_create.model_dump(exclude={"password"})
-    user_data['hashed_password'] = self._encrypt_password(user_create.password)
+      if existing_user:
+        raise ValueError("Email already registered")
+      
+      # Encrypt the password before saving
+      user_data = user_create.model_dump(exclude={"password"})
+      user_data['hashed_password'] = self._encrypt_password(user_create.password)
 
-    # Create a new user instance
-    user = self.user_repository.create(user_data)
+      # Create a new user instance
+      user = self.user_repository.create(user_data)
 
-    # Return the created user
-    return user
+      self.db_session.commit()
+      self.db_session.refresh(user)
+
+      # Return the created user
+      return user
+    except Exception as e:
+      self.db_session.rollback()
+      raise ValueError(f"Error creating user: {str(e)}")
     
   def authenticate_user(self, credentials: OAuth2PasswordRequestForm) -> responses.JSONResponse:
     """Authenticate a user and return tokens."""
@@ -113,14 +120,20 @@ class AuthService:
   
   def change_user_password(self, user: User, current_password: str, new_password: str) -> User:
     """Change the user's password."""
-    if not self._verify_password(current_password, user.hashed_password):
-      raise ValueError("Current password is incorrect")
-    
-    # Encrypt the new password
-    encrypted_password = self._encrypt_password(new_password)
-    user = self.user_repository.change_password(user, encrypted_password)
+    try:
+      if not self._verify_password(current_password, user.hashed_password):
+        raise ValueError("Current password is incorrect")
+      
+      # Encrypt the new password
+      encrypted_password = self._encrypt_password(new_password)
+      user = self.user_repository.change_password(user, encrypted_password)
 
-    return user
+      self.db_session.commit()
+      self.db_session.refresh(user)
+      return user
+    except Exception as e:
+      self.db_session.rollback()
+      raise ValueError(f"Error changing password: {str(e)}")
 
   def _create_tokens(self, user: User, type: Literal['access', 'refresh']) -> str:
     """Create JWT token for the user."""

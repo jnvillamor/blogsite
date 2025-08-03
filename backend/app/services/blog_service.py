@@ -12,22 +12,29 @@ class BlogService:
     self.blog_repository = BlogRepository(db_session)
   
   def create_blog(self, blog_data: BlogCreate, user_id: UUID) -> Blog:
-    """Create a new blog post."""
-    
-    if not blog_data.title or not blog_data.content:
-      raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail="Title and content are required"
-      )
-    
-    if blog_data.author_id != str(user_id):
-      raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="You can only create blogs for your own account"
-      )
-    
-    blog = self.blog_repository.create(blog_data)
-    return blog
+    try:
+      """Create a new blog post."""
+      
+      if not blog_data.title or not blog_data.content:
+        raise HTTPException(
+          status_code=status.HTTP_400_BAD_REQUEST,
+          detail="Title and content are required"
+        )
+      
+      if blog_data.author_id != str(user_id):
+        raise HTTPException(
+          status_code=status.HTTP_403_FORBIDDEN,
+          detail="You can only create blogs for your own account"
+        )
+      
+      blog = self.blog_repository.create(blog_data)
+      self.db_session.commit()
+      self.db_session.refresh(blog)
+      return blog
+    except Exception as e:
+      print(f"Error creating blog: {e}")
+      self.db_session.rollback()
+      raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
   
   def get_blogs(self, limit: int = 5, offset: int = 0):
     """Get all blogs with pagination."""
@@ -41,38 +48,50 @@ class BlogService:
     return blog
   
   def update_blog(self, blog_id: str, blog_data: BlogUpdate, user_id: UUID) -> Blog:
-    """Update an existing blog post."""
-    blog = self.get_blog_by_id(blog_id)
-    
-    if not blog:
-      raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Blog not found")
+    try:
+      """Update an existing blog post."""
+      blog = self.get_blog_by_id(blog_id)
+      
+      if not blog:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Blog not found")
 
-    if blog_data.title is None or blog_data.content is None:
-      raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail="Title and content cannot be empty"
-      )
+      if blog_data.title is None or blog_data.content is None:
+        raise HTTPException(
+          status_code=status.HTTP_400_BAD_REQUEST,
+          detail="Title and content cannot be empty"
+        )
 
-    if blog_data.author_id != str(user_id):
-      raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="You can only update blogs for your own account"
-      )
+      if blog_data.author_id != str(user_id):
+        raise HTTPException(
+          status_code=status.HTTP_401_UNAUTHORIZED,
+          detail="You can only update blogs for your own account"
+        )
 
-    updated_blog = self.blog_repository.update(blog, blog_data)
-    return updated_blog
+      updated_blog = self.blog_repository.update(blog, blog_data)
+      self.db_session.commit()
+      self.db_session.refresh(updated_blog)
+      return updated_blog
+    except Exception as e:
+      self.db_session.rollback()
+      raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
-  def delete_blog(self, blog_id: str, user_id: UUID):
+  def delete_blog(self, blog_id: str, user_id: UUID) -> dict:
     """Delete a blog post."""
-    blog = self.get_blog_by_id(blog_id)
-    
-    if not blog:
-      raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Blog not found")
-    
-    if blog.author_id != user_id:
-      raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="You can only delete blogs for your own account"
-      )
-    
-    self.blog_repository.delete(blog)
+    try:
+      blog = self.get_blog_by_id(blog_id)
+      
+      if not blog:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Blog not found")
+      
+      if blog.author_id != user_id:
+        raise HTTPException(
+          status_code=status.HTTP_401_UNAUTHORIZED,
+          detail="You can only delete blogs for your own account"
+        )
+      
+      self.blog_repository.delete(blog)
+      self.db_session.commit()
+      return {"detail": "Blog deleted successfully"}
+    except Exception as e:
+      self.db_session.rollback()
+      raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

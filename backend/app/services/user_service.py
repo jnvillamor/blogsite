@@ -35,14 +35,18 @@ class UserService:
 
   def update_user(self, current_user: User, user_id: str, user_data: UserUpdate) -> User:
     """Update user information."""
-    user = self.get_user_by_id(user_id)
-    
-    # Only allow the current user to update their own information
-    if not user or current_user.id != user.id:
-      raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to update this user")
-    
-    # Update user fields
-    updated_user = self.user_repository.update_info(user, user_data)
-    
-    self.db_session.commit()
-    return updated_user
+    try:
+      user = self.get_user_by_id(user_id)
+      
+      # Only allow the current user to update their own information
+      if not user or current_user.id != user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to update this user")
+      
+      # Update user fields
+      updated_user = self.user_repository.update_info(user, user_data)
+      self.db_session.commit()
+      self.db_session.refresh(updated_user)
+      return updated_user
+    except Exception as e:
+      self.db_session.rollback()
+      raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

@@ -9,16 +9,10 @@ class BlogRepository:
     self.db_session = db_session
   
   def create(self, blog: BlogCreate) -> Blog:
-    try:
-      new_blog = Blog(**blog.model_dump())
-      self.db_session.add(new_blog)
-      self.db_session.commit()
-      self.db_session.refresh(new_blog)
-      return new_blog
-    except Exception as e:
-      self.db_session.rollback()
-      raise e
-  
+    new_blog = Blog(**blog.model_dump())
+    self.db_session.add(new_blog)
+    return new_blog
+
   def get_by_user(self, user_id: str, limit: int = 5, offset: int = 0) -> List[Blog]:
     """Retrieve all blogs by a specific user."""
     total = self.db_session.query(Blog).filter(Blog.author_id == user_id).count()
@@ -51,21 +45,10 @@ class BlogRepository:
   
   def update(self, blog: Blog, blog_data: BlogCreate) -> Blog:
     """Update an existing blog post."""
-    try:
-      for key, value in blog_data.model_dump().items():
-        setattr(blog, key, value)
-      self.db_session.commit()
-      self.db_session.refresh(blog)
-      return blog
-    except Exception as e:
-      self.db_session.rollback()
-      raise e
+    for key, value in blog_data.model_dump().items():
+      setattr(blog, key, value)
+    return blog
   
   def delete(self, blog: Blog):
     """Delete a blog post."""
-    try:
-      self.db_session.delete(blog)
-      self.db_session.commit()
-    except Exception as e:
-      self.db_session.rollback()
-      raise e
+    self.db_session.delete(blog)
