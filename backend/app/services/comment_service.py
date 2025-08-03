@@ -6,7 +6,7 @@ from app.models.comment import Comment
 from app.repositories.comment_repository import CommentRepository
 from app.services.blog_service import BlogService
 from app.services.user_service import UserService
-from app.schemas.comment_schema import CommentCreate
+from app.schemas.comment_schema import CommentCreate, CommentUpdate
 
 class CommentService:
   def __init__(self, db_session: Session):
@@ -92,8 +92,44 @@ class CommentService:
     } for reply, reply_count in replies]
 
     return replies, total
+  
+  def update_comment(
+    self,
+    comment_id: str,
+    data: CommentUpdate,
+    author_id: UUID | str,
+  ) -> dict:
+    """Update an existing comment."""
+    try:
+      # Validate the comment data
+      self._validate_comment_data(data)
+      
+      # Validate references
+      self._validate_comment_reference(data.blog_id, author_id, data.parent_id)
+      
+      comment = self.get_comment_or_404(comment_id)
+      if str(comment.get("author_id")) != str(author_id):
+        raise HTTPException(
+          status_code=status.HTTP_403_FORBIDDEN,
+          detail="You do not have permission to update this comment"
+        )
+      
+      # Process the comment data
+      data = self._process_comment_data(data)
+      
+      # Update the comment
+      updated_comment = self.comment_repository.update(comment_id, data)
+      self.db_session.commit()
+      self.db_session.refresh(updated_comment)
 
-  def _validate_comment_data(self, data: CommentCreate) -> None:
+      return {**updated_comment.__dict__, "reply_count": comment.get("reply_count")}
+    except HTTPException as http_exc:
+      raise http_exc
+    except Exception as e:
+      print(f"Error updating comment: {e}")
+      raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+  def _validate_comment_data(self, data: CommentCreate | CommentUpdate) -> None:
     """Validate the comment data."""
     for key, value in data.model_dump().items():
       if value is None:
@@ -117,7 +153,7 @@ class CommentService:
           detail="Parent comment does not belong to the specified blog"
         )
   
-  def _process_comment_data(self, data: CommentCreate) -> CommentCreate:
+  def _process_comment_data(self, data: CommentCreate | CommentUpdate) -> CommentCreate | CommentUpdate:
     """Process and convert comment data to the appropriate types."""
     data.author_id = UUID(data.author_id) if isinstance(data.author_id, str) else data.author_id
     data.blog_id = UUID(data.blog_id) if isinstance(data.blog_id, str) else data.blog_id

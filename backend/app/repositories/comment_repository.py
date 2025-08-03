@@ -2,7 +2,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session, aliased
 
 from app.models.comment import Comment
-from app.schemas.comment_schema import CommentCreate
+from app.schemas.comment_schema import CommentCreate, CommentUpdate
 
 class CommentRepository:
   def __init__(self, db: Session):
@@ -110,3 +110,12 @@ class CommentRepository:
     )
 
     return replies, total
+
+  def update(self, comment_id: str, data: CommentUpdate):
+    """Update an existing comment."""
+    comment, _ = self.get_by_id(comment_id)
+    
+    for key, value in data.model_dump().items():
+      setattr(comment, key, value)
+    
+    return comment

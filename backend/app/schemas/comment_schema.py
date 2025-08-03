@@ -11,6 +11,9 @@ class CommentBase(BaseModel):
 class CommentCreate(CommentBase):
   pass
 
+class CommentUpdate(CommentBase):
+  pass
+
 class CommentResponse(CommentBase):
   id: UUID
   created_at: datetime
