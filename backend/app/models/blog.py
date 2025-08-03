@@ -15,4 +15,5 @@ class Blog(Base):
   created_at = Column(DateTime(timezone=True), default=func.now(), nullable=False)
   updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now(), nullable=False)
 
+  comments = relationship("Comment", back_populates="blog", cascade="all, delete-orphan")
   author = relationship("User", back_populates="blogs", foreign_keys='Blog.author_id')
