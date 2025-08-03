@@ -43,6 +43,9 @@ class BlogService:
   def update_blog(self, blog_id: str, blog_data: BlogUpdate, user_id: UUID) -> Blog:
     """Update an existing blog post."""
     blog = self.get_blog_by_id(blog_id)
+    
+    if not blog:
+      raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Blog not found")
 
     if blog_data.title is None or blog_data.content is None:
       raise HTTPException(
@@ -58,3 +61,18 @@ class BlogService:
 
     updated_blog = self.blog_repository.update(blog, blog_data)
     return updated_blog
+
+  def delete_blog(self, blog_id: str, user_id: UUID):
+    """Delete a blog post."""
+    blog = self.get_blog_by_id(blog_id)
+    
+    if not blog:
+      raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Blog not found")
+    
+    if blog.author_id != user_id:
+      raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="You can only delete blogs for your own account"
+      )
+    
+    self.blog_repository.delete(blog)

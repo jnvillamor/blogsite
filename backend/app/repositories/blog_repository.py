@@ -60,3 +60,12 @@ class BlogRepository:
     except Exception as e:
       self.db_session.rollback()
       raise e
+  
+  def delete(self, blog: Blog):
+    """Delete a blog post."""
+    try:
+      self.db_session.delete(blog)
+      self.db_session.commit()
+    except Exception as e:
+      self.db_session.rollback()
+      raise e

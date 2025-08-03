@@ -1,4 +1,4 @@
-from fastapi import HTTPException, status, Depends
+from fastapi import HTTPException, status, Depends, responses
 from fastapi.routing import APIRouter
 
 from app.api.dependencies import get_current_user
@@ -75,6 +75,22 @@ def update_blog(
     blog_service = BlogService(session)
     blog = blog_service.update_blog(blog_id, blog_data, current_user.id)
     return BlogResponse.model_validate(blog)
+  except HTTPException as http_exc:
+    raise http_exc
+  except Exception as e:
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.delete("/{blog_id}", status_code=204)
+def delete_blog(
+  blog_id: str,
+  session: SessionDep,
+  current_user: User = Depends(get_current_user),
+):
+  """Delete a blog post."""
+  try:
+    blog_service = BlogService(session)
+    blog_service.delete_blog(blog_id, current_user.id)
+    return responses.JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content={ "detail": "Blog deleted successfully" })
   except HTTPException as http_exc:
     raise http_exc
   except Exception as e:
