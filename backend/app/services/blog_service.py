@@ -14,13 +14,8 @@ class BlogService:
   def create_blog(self, blog_data: BlogCreate, user_id: UUID) -> Blog:
     try:
       """Create a new blog post."""
-      
-      if not blog_data.title or not blog_data.content:
-        raise HTTPException(
-          status_code=status.HTTP_400_BAD_REQUEST,
-          detail="Title and content are required"
-        )
-      
+      self._validate_blog_data(blog_data)     
+
       if blog_data.author_id != str(user_id):
         raise HTTPException(
           status_code=status.HTTP_403_FORBIDDEN,
@@ -40,7 +35,7 @@ class BlogService:
     """Get all blogs with pagination."""
     return self.blog_repository.get_all(limit, offset)
 
-  def get_blog_by_id(self, blog_id: str) -> Blog:
+  def get_blog_or_404(self, blog_id: str) -> Blog:
     """Get a blog by its ID."""
     blog = self.blog_repository.get_by_id(blog_id)
     if not blog:
@@ -50,16 +45,9 @@ class BlogService:
   def update_blog(self, blog_id: str, blog_data: BlogUpdate, user_id: UUID) -> Blog:
     try:
       """Update an existing blog post."""
-      blog = self.get_blog_by_id(blog_id)
+      blog = self.get_blog_or_404(blog_id)
       
-      if not blog:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Blog not found")
-
-      if blog_data.title is None or blog_data.content is None:
-        raise HTTPException(
-          status_code=status.HTTP_400_BAD_REQUEST,
-          detail="Title and content cannot be empty"
-        )
+      self._validate_blog_data(blog_data)     
 
       if blog_data.author_id != str(user_id):
         raise HTTPException(
@@ -71,6 +59,9 @@ class BlogService:
       self.db_session.commit()
       self.db_session.refresh(updated_blog)
       return updated_blog
+    except HTTPException as http_exc:
+      self.db_session.rollback()
+      raise http_exc
     except Exception as e:
       self.db_session.rollback()
       raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
@@ -78,10 +69,7 @@ class BlogService:
   def delete_blog(self, blog_id: str, user_id: UUID) -> dict:
     """Delete a blog post."""
     try:
-      blog = self.get_blog_by_id(blog_id)
-      
-      if not blog:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Blog not found")
+      blog = self.get_blog_or_404(blog_id)
       
       if blog.author_id != user_id:
         raise HTTPException(
@@ -92,6 +80,18 @@ class BlogService:
       self.blog_repository.delete(blog)
       self.db_session.commit()
       return {"detail": "Blog deleted successfully"}
+    except HTTPException as http_exc:
+      self.db_session.rollback()
+      raise http_exc
     except Exception as e:
       self.db_session.rollback()
       raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+  
+  def _validate_blog_data(self, data: BlogCreate) -> None:
+    """Validate the blog data."""
+    for key, value in data.model_dump().items():
+      if value is None:
+        raise HTTPException(
+          status_code=status.HTTP_400_BAD_REQUEST,
+          detail=f"{key} is required"
+        )

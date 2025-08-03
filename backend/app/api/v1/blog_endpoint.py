@@ -5,7 +5,9 @@ from app.api.dependencies import get_current_user
 from app.db.base import SessionDep
 from app.models.user import User
 from app.services.blog_service import BlogService
+from app.services.comment_service import CommentService
 from app.schemas.blog_schema import BlogCreate, BlogResponse, BlogUpdate
+from app.schemas.comment_schema import CommentCreate, CommentResponse
 from app.schemas.shared_schema import PaginatedResponse
 
 router = APIRouter(
@@ -55,7 +57,7 @@ def get_blog_by_id(blog_id: str, session: SessionDep):
   """Get a blog by its ID."""
   try:
     blog_service = BlogService(session)
-    blog = blog_service.get_blog_by_id(blog_id)
+    blog = blog_service.get_blog_or_404(blog_id)
     
     return BlogResponse.model_validate(blog)
   except HTTPException as http_exc:
@@ -91,6 +93,24 @@ def delete_blog(
     blog_service = BlogService(session)
     blog_service.delete_blog(blog_id, current_user.id)
     return {"detail": "Blog deleted successfully"}
+  except HTTPException as http_exc:
+    raise http_exc
+  except Exception as e:
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.post("/{blog_id}/comments", response_model=CommentResponse, status_code=201)
+def create_comment(
+  blog_id: str,
+  comment_data: CommentCreate,
+  session: SessionDep,
+  current_user: User = Depends(get_current_user),
+):
+  """Create a new comment on a blog post."""
+  try:
+    comment_service = CommentService(session)
+    comment = comment_service.create_comment(data=comment_data)
+
+    return CommentResponse.model_validate(comment)
   except HTTPException as http_exc:
     raise http_exc
   except Exception as e:

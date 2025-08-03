@@ -16,16 +16,16 @@ class UserService:
     self.blog_repository = BlogRepository(db_session)
     self.db_session = db_session
     
-  def get_user_by_id(self, user_id: str, with_blogs: bool = False) -> User:
+  def get_user_or_404(self, user_id: str, with_blogs: bool = False) -> User:
     """Retrieve a user by their ID."""
     user = self.user_repository.get_by_id(user_id)
 
     if with_blogs:
       blogs, total = self.blog_repository.get_by_user(user_id)
       user.blogs = blogs
-
+      
     if not user:
-      raise ValueError("User not found")
+      raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     return user
 
@@ -36,10 +36,10 @@ class UserService:
   def update_user(self, current_user: User, user_id: str, user_data: UserUpdate) -> User:
     """Update user information."""
     try:
-      user = self.get_user_by_id(user_id)
+      user = self.get_user_or_404(user_id)
       
       # Only allow the current user to update their own information
-      if not user or current_user.id != user.id:
+      if current_user.id != user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to update this user")
       
       # Update user fields

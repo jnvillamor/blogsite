@@ -25,7 +25,7 @@ def get_current_user(db_session: SessionDep, token: Annotated[str, Depends(oauth
     user_id: str = payload.get("user_id")
     
     user_service = UserService(db_session)
-    user = user_service.get_user_by_id(user_id)
+    user = user_service.get_user_or_404(user_id)
 
     return user
     

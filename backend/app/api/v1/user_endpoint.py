@@ -25,10 +25,7 @@ def get_user_by_id(user_id: str, db_session: SessionDep):
   """Get user by ID."""
   try:
     user_service = UserService(db_session)
-    user = user_service.get_user_by_id(user_id, with_blogs=True)
-    
-    if not user:
-      raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    user = user_service.get_user_or_404(user_id, with_blogs=True)
     
     return UserResponse.model_validate(user)
   except Exception as e:
