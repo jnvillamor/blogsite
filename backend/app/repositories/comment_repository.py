@@ -16,7 +16,13 @@ class CommentRepository:
     
   def get_by_id(self, comment_id: str):
     """Retrieve a comment by its ID."""
-    return self.db.query(Comment).filter(Comment.id == comment_id).first()
+    comment = self.db.query(Comment).filter(Comment.id == comment_id).first()
+    reply_count = (
+      self.db.query(func.count(Comment.id))
+        .filter(Comment.parent_id == comment_id)
+        .scalar()
+    )
+    return comment, reply_count if comment else None
   
   def get_top_level_comments(self, blog_id: str, limit: int = 10, offset: int = 0):
     """Get top-level comments for a specific blog post."""

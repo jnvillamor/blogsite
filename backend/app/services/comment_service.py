@@ -55,10 +55,10 @@ class CommentService:
 
   def get_comment_or_404(self, comment_id: str):
     """Get a comment by its ID."""
-    comment = self.comment_repository.get_by_id(comment_id)
+    comment, reply_count = self.comment_repository.get_by_id(comment_id)
     if not comment:
       raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
-    return comment
+    return comment, reply_count
 
   def _validate_comment_data(self, data: CommentCreate) -> None:
     """Validate the comment data."""
@@ -76,7 +76,7 @@ class CommentService:
 
     parent_comment = None
     if parent_id:
-      parent_comment = self.get_comment_or_404(parent_id)
+      parent_comment, _ = self.get_comment_or_404(parent_id)
 
       if str(parent_comment.blog_id) != blog_id:
         raise HTTPException(
