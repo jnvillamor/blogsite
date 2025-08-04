@@ -42,3 +42,4 @@ def get_current_user(db_session: SessionDep, token: Annotated[str, Depends(oauth
   except ValueError as e:
     raise e
   
+CurrentUserDep = Annotated[User, Depends(get_current_user)]

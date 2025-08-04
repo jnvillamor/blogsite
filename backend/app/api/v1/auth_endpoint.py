@@ -1,23 +1,20 @@
 from fastapi import HTTPException, status, Depends, requests
 from fastapi.routing import APIRouter
 from fastapi.security import OAuth2PasswordRequestForm
-from app.schemas.user_schema import UserCreate, UserResponse
+
+from app.api.dependencies import CurrentUserDep 
 from app.schemas.auth_schema import TokenResponse, ChangePasswordRequest
-from app.db.base import SessionDep
-from app.services.auth_service import AuthService
-from app.models.user import User
-from app.api.dependencies import get_current_user
+from app.schemas.user_schema import UserCreate, UserResponse
+from app.services.auth_service import AuthServiceDep 
 
 router = APIRouter(
   prefix="/auth",
 )
 
 @router.post("/register", response_model=UserResponse, status_code=201)
-def register_user(user: UserCreate, session: SessionDep):
+def register_user(user: UserCreate, auth_service: AuthServiceDep):
   """Register a new user."""
   try: 
-
-    auth_service = AuthService(session)
     created_user = auth_service.create_user(user)
     return UserResponse.model_validate(created_user)
 
@@ -26,12 +23,11 @@ def register_user(user: UserCreate, session: SessionDep):
 
 @router.post("/login", response_model=TokenResponse, status_code=200)
 def login_user(
-  session: SessionDep,
+  auth_service: AuthServiceDep,
   form_data: OAuth2PasswordRequestForm = Depends()
 ):
   """Login a user and return access and refresh tokens."""
   try:
-    auth_service = AuthService(session)
     response = auth_service.authenticate_user(form_data)
     
     return response
@@ -44,11 +40,10 @@ def login_user(
 
 @router.post("/logout", status_code=204)
 def logout_user(
-  session: SessionDep,
-  user: User = Depends(get_current_user)
+  auth_service: AuthServiceDep,
+  user: CurrentUserDep
 ):
   try:
-    auth_service = AuthService(session)
     auth_service.logout_user(user)
     return {"detail": "Successfully logged out"}
   except Exception as e:
@@ -57,13 +52,12 @@ def logout_user(
 
 @router.get("/refresh", response_model=TokenResponse, status_code=200)
 def refresh_token(
-  session: SessionDep,
+  auth_service: AuthServiceDep,
   req: requests.Request,
-  user: User = Depends(get_current_user)
+  user: CurrentUserDep
 ):
   """Refresh the access token using the refresh token."""
   try:
-    auth_service = AuthService(session)
     response = auth_service.refresh_user_token(user, req)
     return response
   except ValueError as e:
@@ -75,12 +69,11 @@ def refresh_token(
 @router.put("/change-password", status_code=200)
 def change_password(
   password_data: ChangePasswordRequest,
-  session: SessionDep,
-  user: User = Depends(get_current_user),
+  auth_service: AuthServiceDep,
+  user: CurrentUserDep
 ):
   """Change the password of the current user."""
   try:
-    auth_service = AuthService(session)
     user = auth_service.change_user_password(user, password_data.current_password, password_data.new_password)
     
     return {"detail": "Password changed successfully"}

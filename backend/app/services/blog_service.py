@@ -1,7 +1,9 @@
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Depends
 from sqlalchemy.orm import Session
+from typing import Annotated
 from uuid import UUID
 
+from app.db.base import SessionDep
 from app.models.blog import Blog
 from app.repositories.blog_repository import BlogRepository
 from app.schemas.blog_schema import BlogCreate, BlogUpdate
@@ -95,3 +97,9 @@ class BlogService:
           status_code=status.HTTP_400_BAD_REQUEST,
           detail=f"{key} is required"
         )
+
+# Dependency injection for database session
+def get_blog_service(db_session: SessionDep):
+  return BlogService(db_session)
+
+BlogServiceDep = Annotated[BlogService, Depends(get_blog_service)]

@@ -1,6 +1,8 @@
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Depends
 from sqlalchemy.orm import Session
+from typing import Annotated
 
+from app.db.base import SessionDep
 from app.models.user import User
 from app.services.auth_service import AuthService
 from app.schemas.user_schema import UserUpdate
@@ -50,3 +52,9 @@ class UserService:
     except Exception as e:
       self.db_session.rollback()
       raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+def get_user_service(db_session: SessionDep) -> UserService:
+    """Get the user service instance."""
+    return UserService(db_session)
+
+UserServiceDep = Annotated[UserService, Depends(get_user_service)]

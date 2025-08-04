@@ -1,16 +1,17 @@
+from datetime import datetime, timezone
+from fastapi import requests, responses, Depends
+from fastapi.security import OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
-from typing import Literal
-from datetime import datetime, timezone
-from fastapi.security import OAuth2PasswordRequestForm
-from fastapi import requests, responses
+from typing import Literal, Annotated
 import jwt
 
-from app.schemas.user_schema import UserCreate
-from app.schemas.auth_schema import TokenResponse
+from app.db.base import SessionDep
+from app.core.config import settings
 from app.models.user import User
 from app.repositories.user_respository import UserRepository
-from app.core.config import settings
+from app.schemas.user_schema import UserCreate
+from app.schemas.auth_schema import TokenResponse
 from app.services.redis_service import RedisService
 
 class AuthService:
@@ -153,3 +154,9 @@ class AuthService:
   def _encrypt_password(self, password: str) -> str:
     """Encrypt the password using a hashing algorithm."""
     return self.pwd_context.hash(password)
+
+def get_auth_service(db_session: SessionDep) -> AuthService:
+  """Get the AuthService instance."""
+  return AuthService(db_session)
+
+AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]

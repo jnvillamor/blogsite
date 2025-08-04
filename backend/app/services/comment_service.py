@@ -1,7 +1,9 @@
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Depends
 from sqlalchemy.orm import Session
+from typing import Annotated
 from uuid import UUID
 
+from app.db.base import SessionDep
 from app.models.comment import Comment
 from app.repositories.comment_repository import CommentRepository
 from app.services.blog_service import BlogService
@@ -180,3 +182,9 @@ class CommentService:
     data.parent_id = UUID(data.parent_id) if (isinstance(data.parent_id, str) and data.parent_id) else None
 
     return data
+
+def get_comment_service(db_session: SessionDep) -> CommentService:
+    """Get the comment service instance."""
+    return CommentService(db_session)
+  
+CommentServiceDep = Annotated[CommentService, Depends(get_comment_service)]
