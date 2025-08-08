@@ -12,6 +12,7 @@ class User(Base):
   email = Column(String, unique=True, nullable=False)
   first_name = Column(String, nullable=False)
   last_name = Column(String, nullable=False)
+  profile_img = Column(String, nullable=True)
   hashed_password = Column(String, nullable=False)
   created_at = Column(DateTime(timezone=True), default=func.now(), nullable=False)
   updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now(), nullable=False)
