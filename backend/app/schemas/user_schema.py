@@ -7,6 +7,7 @@ class UserBase(BaseModel):
   email: str 
   first_name: str
   last_name: str
+  profile_img: str | None = None
 
 class UserSimple(UserBase):
   id: UUID

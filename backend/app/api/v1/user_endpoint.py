@@ -1,4 +1,4 @@
-from fastapi import HTTPException, status, Depends
+from fastapi import HTTPException, status, UploadFile, File
 from fastapi.routing import APIRouter
 
 from app.api.dependencies import CurrentUserDep 
@@ -59,6 +59,22 @@ def update_user(
   """Update user information."""
   try:
     updated_user = user_service.update_user(current_user, user_id, user_data)
+    return UserResponse.model_validate(updated_user)
+  except HTTPException as http_exc:
+    raise http_exc
+  except Exception as e:
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.put("/{user_id}/avatar", response_model=UserResponse, status_code=200)
+def update_user_avatar(
+  user_service: UserServiceDep,
+  user_id: str,
+  current_user: CurrentUserDep,
+  profile_img: UploadFile = File(...)
+):
+  """Update user avatar."""
+  try:
+    updated_user = user_service.update_user_avatar(current_user, user_id, profile_img)
     return UserResponse.model_validate(updated_user)
   except HTTPException as http_exc:
     raise http_exc

@@ -9,3 +9,5 @@ passlib[bcrypt]
 PyJWT
 python-multipart
 redis
+python-magic
+pillow

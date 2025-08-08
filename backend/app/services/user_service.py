@@ -1,13 +1,12 @@
-from fastapi import HTTPException, status, Depends
+from fastapi import HTTPException, status, UploadFile, Depends
 from sqlalchemy.orm import Session
 from typing import Annotated
 
 from app.db.base import SessionDep
 from app.models.user import User
 from app.services.auth_service import AuthService
+from app.services.file_service import FileService
 from app.schemas.user_schema import UserUpdate
-from app.schemas.blog_schema import BlogResponse
-from app.schemas.shared_schema import PaginatedResponse
 from app.repositories.user_respository import UserRepository
 from app.repositories.blog_repository import BlogRepository
 
@@ -16,6 +15,7 @@ class UserService:
     self.user_repository = UserRepository(db_session)
     self.auth_service = AuthService(db_session)
     self.blog_repository = BlogRepository(db_session)
+    self.file_service = FileService()
     self.db_session = db_session
     
   def get_user_or_404(self, user_id: str, with_blogs: bool = False) -> User:
@@ -52,6 +52,40 @@ class UserService:
     except Exception as e:
       self.db_session.rollback()
       raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+  
+  def update_user_avatar(self, current_user: User, user_id: str, profile_img: UploadFile) -> User:
+    """Update user avatar."""
+    try:
+      # Check if the user id and current user match
+      if str(current_user.id) != user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to update this user's avatar")
+      
+      print(f"Image Type: {profile_img.content_type}")
+      
+      # Validate the uploaded file
+      if (
+        not profile_img
+        or not profile_img.filename
+        or not profile_img.content_type.startswith("image/")
+      ):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid image file")
+      
+      # Get the user 
+      user = self.get_user_or_404(user_id)
+      
+      # Save the profile with user id as the filename 
+      avatar_url = self.file_service.save_avatar(profile_img, user_id)
+      
+      # Update the user's profile image URL
+      user.profile_img = avatar_url
+      self.db_session.commit()
+      self.db_session.refresh(user)
+
+      return user
+    except Exception as e:
+      self.db_session.rollback()
+      raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+      
 
 def get_user_service(db_session: SessionDep) -> UserService:
     """Get the user service instance."""
