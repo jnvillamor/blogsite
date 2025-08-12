@@ -46,7 +46,7 @@ def update_comment(
 ):
   """Update a comment."""
   try:
-    comment = comment_service.update_comment(comment_id, comment_data, current_user.id)
+    comment = comment_service.update_comment(comment_id, comment_data, str(current_user.id))
     return CommentResponse.model_validate(comment)
   except HTTPException as http_exc:
     raise http_exc
@@ -84,7 +84,7 @@ def delete_comment(
 ):
   """Delete a comment."""
   try:
-    comment_service.delete_comment(comment_id, current_user.id)
+    comment_service.delete_comment(comment_id, str(current_user.id))
     return {"detail": "Comment deleted successfully"}
   except HTTPException as http_exc:
     raise http_exc

@@ -1,7 +1,6 @@
 from fastapi import HTTPException, status, Depends
 from sqlalchemy.orm import Session
 from typing import Annotated
-from uuid import UUID
 
 from app.db.base import SessionDep
 from app.models.blog import Blog
@@ -13,12 +12,12 @@ class BlogService:
     self.db_session = db_session
     self.blog_repository = BlogRepository(db_session)
   
-  def create_blog(self, blog_data: BlogCreate, user_id: UUID) -> Blog:
+  def create_blog(self, blog_data: BlogCreate, user_id: str) -> Blog:
     try:
       """Create a new blog post."""
       self._validate_blog_data(blog_data)     
 
-      if blog_data.author_id != str(user_id):
+      if blog_data.author_id != user_id:
         raise HTTPException(
           status_code=status.HTTP_403_FORBIDDEN,
           detail="You can only create blogs for your own account"
@@ -44,14 +43,14 @@ class BlogService:
       raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Blog not found")
     return blog
   
-  def update_blog(self, blog_id: str, blog_data: BlogUpdate, user_id: UUID) -> Blog:
+  def update_blog(self, blog_id: str, blog_data: BlogUpdate, user_id: str) -> Blog:
     try:
       """Update an existing blog post."""
       blog = self.get_blog_or_404(blog_id)
       
       self._validate_blog_data(blog_data)     
 
-      if blog_data.author_id != str(user_id):
+      if blog_data.author_id != user_id:
         raise HTTPException(
           status_code=status.HTTP_401_UNAUTHORIZED,
           detail="You can only update blogs for your own account"
@@ -68,12 +67,12 @@ class BlogService:
       self.db_session.rollback()
       raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
-  def delete_blog(self, blog_id: str, user_id: UUID) -> dict:
+  def delete_blog(self, blog_id: str, user_id: str) -> dict:
     """Delete a blog post."""
     try:
       blog = self.get_blog_or_404(blog_id)
       
-      if blog.author_id != user_id:
+      if str(blog.author_id) != user_id:
         raise HTTPException(
           status_code=status.HTTP_401_UNAUTHORIZED,
           detail="You can only delete blogs for your own account"

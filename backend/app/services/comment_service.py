@@ -69,13 +69,14 @@ class CommentService:
   def get_comment_or_404(self, comment_id: str) -> dict:
     """Get a comment by its ID."""
     comment, reply_count = self.comment_repository.get_by_id(comment_id)
+
+    if not comment:
+      raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
+
     comment = {
       **comment.__dict__,
       "reply_count": reply_count
     }
-
-    if not comment:
-      raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
 
     return comment
   
@@ -99,7 +100,7 @@ class CommentService:
     self,
     comment_id: str,
     data: CommentUpdate,
-    author_id: UUID | str,
+    author_id: str,
   ) -> dict:
     """Update an existing comment."""
     try:
@@ -110,7 +111,7 @@ class CommentService:
       self._validate_comment_reference(data.blog_id, author_id, data.parent_id)
       
       comment = self.get_comment_or_404(comment_id)
-      if str(comment.get("author_id")) != str(author_id):
+      if str(comment.get("author_id")) != author_id:
         raise HTTPException(
           status_code=status.HTTP_403_FORBIDDEN,
           detail="You do not have permission to update this comment"
@@ -131,11 +132,11 @@ class CommentService:
       print(f"Error updating comment: {e}")
       raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
   
-  def delete_comment(self, comment_id: str, author_id: UUID | str) -> None:
+  def delete_comment(self, comment_id: str, author_id: str) -> None:
     """Delete a comment."""
     try:
       comment = self.get_comment_or_404(comment_id)
-      if str(comment.get("author_id")) != str(author_id):
+      if str(comment.get("author_id")) != author_id:
         raise HTTPException(
           status_code=status.HTTP_403_FORBIDDEN,
           detail="You do not have permission to delete this comment"

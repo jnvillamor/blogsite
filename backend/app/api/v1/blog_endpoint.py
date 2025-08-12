@@ -20,7 +20,7 @@ def create_blog(
   ):
   """Create a new blog post."""
   try:
-    blog = blog_service.create_blog(blog_data, current_user.id)
+    blog = blog_service.create_blog(blog_data, str(current_user.id))
     return BlogResponse.model_validate(blog)
   except HTTPException as http_exc:
     raise http_exc
@@ -69,7 +69,7 @@ def update_blog(
 ):
   """Update a blog post."""
   try:
-    blog = blog_service.update_blog(blog_id, blog_data, current_user.id)
+    blog = blog_service.update_blog(blog_id, blog_data, str(current_user.id))
     return BlogResponse.model_validate(blog)
   except HTTPException as http_exc:
     raise http_exc
@@ -84,7 +84,7 @@ def delete_blog(
 ):
   """Delete a blog post."""
   try:
-    blog_service.delete_blog(blog_id, current_user.id)
+    blog_service.delete_blog(blog_id, str(current_user.id))
     return {"detail": "Blog deleted successfully"}
   except HTTPException as http_exc:
     raise http_exc
