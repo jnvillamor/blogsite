@@ -1,9 +1,17 @@
-from sqlalchemy import Column, String, Text, DateTime, ForeignKey, func
+from sqlalchemy import Column, String, Text, DateTime, ForeignKey, Table, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import uuid
 
 from app.db.base import Base
+
+blog_likes = Table(
+  "blog_likes",
+  Base.metadata,
+  Column("user_id", UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+  Column("blog_id", UUID(as_uuid=True), ForeignKey("blogs.id", ondelete="CASCADE"), primary_key=True),
+  UniqueConstraint("user_id", "blog_id", name="unique_user_blog_like")
+)
 
 class Blog(Base):
   __tablename__ = 'blogs'
