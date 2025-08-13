@@ -4,6 +4,7 @@ from typing import Annotated
 
 from app.db.base import SessionDep
 from app.models.blog import Blog
+from app.models.user import User
 from app.repositories.blog_repository import BlogRepository
 from app.schemas.blog_schema import BlogCreate, BlogUpdate
 
@@ -88,6 +89,26 @@ class BlogService:
       self.db_session.rollback()
       raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
   
+  def toggle_blog_like(self, blog_id: str, user: User) -> Blog:
+    try:
+      blog = self.get_blog_or_404(blog_id)
+
+      if user in blog.liked_by:
+        self.blog_repository.remove_blog_like(blog, user)
+      else:
+        self.blog_repository.add_blog_like(blog, user)
+
+      self.db_session.commit()
+      self.db_session.refresh(blog)
+      return blog
+    except HTTPException as http_exc:
+      self.db_session.rollback()
+      raise http_exc
+    except Exception as e:
+      self.db_session.rollback()
+      print(f"Error toggling blog like: {e}")
+      raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
   def _validate_blog_data(self, data: BlogCreate) -> None:
     """Validate the blog data."""
     for key, value in data.model_dump().items():

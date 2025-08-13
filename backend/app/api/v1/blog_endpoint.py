@@ -129,3 +129,18 @@ def get_comments(
     raise http_exc
   except Exception as e:
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.put("/{blog_id}/toggle-like", response_model=BlogResponse, status_code=200)
+def toggle_like_blog(
+  blog_id: str,
+  blog_service: BlogServiceDep,
+  current_user: CurrentUserDep
+):
+  """Toggle like status for a blog post."""
+  try:
+    blog = blog_service.toggle_blog_like(blog_id, current_user)
+    return BlogResponse.model_validate(blog)
+  except HTTPException as http_exc:
+    raise http_exc
+  except Exception as e:
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

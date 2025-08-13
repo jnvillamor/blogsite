@@ -3,6 +3,7 @@ from typing import List
 
 from app.schemas.blog_schema import BlogCreate
 from app.models.blog import Blog
+from app.models.user import User
 
 class BlogRepository:
   def __init__(self, db_session: Session):
@@ -52,3 +53,9 @@ class BlogRepository:
   def delete(self, blog: Blog):
     """Delete a blog post."""
     self.db_session.delete(blog)
+  
+  def add_blog_like(self, blog: Blog, user: User):
+    blog.liked_by.append(user)
+
+  def remove_blog_like(self, blog: Blog, user: User):
+    blog.liked_by.remove(user)

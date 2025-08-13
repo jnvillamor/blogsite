@@ -1,7 +1,8 @@
 from __future__ import annotations
-from pydantic import BaseModel
-from uuid import UUID
 from datetime import datetime
+from pydantic import BaseModel
+from typing import List 
+from uuid import UUID
 
 class BlogBase(BaseModel):
   title: str
@@ -29,6 +30,7 @@ class BlogResponse(BlogBase):
   updated_at: datetime
 
   author: "UserSimple"
+  liked_by: List["UserSimple"] = []
 
   model_config = {
     "from_attributes": True,

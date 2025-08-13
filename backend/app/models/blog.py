@@ -25,3 +25,4 @@ class Blog(Base):
 
   comments = relationship("Comment", back_populates="blog", cascade="all, delete-orphan")
   author = relationship("User", back_populates="blogs", foreign_keys='Blog.author_id')
+  liked_by = relationship("User", secondary=blog_likes, back_populates="liked_blogs", passive_deletes=True)

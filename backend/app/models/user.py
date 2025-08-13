@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 import uuid
 
 from app.db.base import Base
+from app.models.blog import blog_likes
 
 class User(Base):
   __tablename__ = "users"
@@ -18,6 +19,7 @@ class User(Base):
   updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now(), nullable=False)
 
   blogs = relationship("Blog", back_populates="author", cascade="all, delete, delete-orphan", passive_deletes=True)
+  liked_blogs = relationship("Blog", secondary=blog_likes, back_populates="liked_by", passive_deletes=True)
 
   def __repr__(self):
     return f"<User(id={self.id}, email={self.email}, first_name={self.first_name}, last_name={self.last_name})>"
