@@ -91,3 +91,19 @@ def delete_comment(
   except Exception as e:
     print(f"Error deleting comment: {e}")
     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+@router.put("/{comment_id}/toggle-like", response_model=CommentResponse, status_code=200)
+def toggle_like_comment(
+  comment_id: str,
+  comment_service: CommentServiceDep,
+  current_user: CurrentUserDep,
+):
+  """Toggle the status for a comment."""
+  try:
+    comment = comment_service.toggle_comment_like(comment_id, current_user)
+    return CommentResponse.model_validate(comment)
+  except HTTPException as http_exc:
+    raise http_exc
+  except Exception as e:
+    print(f"Error toggling like status: {e}")
+    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

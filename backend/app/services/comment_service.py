@@ -5,6 +5,7 @@ from uuid import UUID
 
 from app.db.base import SessionDep
 from app.models.comment import Comment
+from app.models.user import User
 from app.repositories.comment_repository import CommentRepository
 from app.services.blog_service import BlogService
 from app.services.user_service import UserService
@@ -148,6 +149,25 @@ class CommentService:
     except Exception as e:
       print(f"Error deleting comment: {e}")
       self.db_session.rollback()
+      raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+  
+  def toggle_comment_like(self, comment_id: str, user: User) -> Comment:
+    """Toggle like status for a comment."""   
+    try:
+      comment = self.get_comment_or_404(comment_id)
+      
+      if user in comment.liked_by:
+        self.comment_repository.remove_user_like(comment, user)
+      else:
+        self.comment_repository.add_user_like(comment, user)
+      
+      self.db_session.commit()
+      self.db_session.refresh(comment)
+      return comment 
+    except HTTPException as http_exc:
+      raise http_exc
+    except Exception as e:
+      print(f"Error toggling like status: {e}")
       raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
   def _validate_comment_data(self, data: CommentCreate | CommentUpdate) -> None:

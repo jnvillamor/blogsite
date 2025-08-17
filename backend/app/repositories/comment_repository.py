@@ -2,6 +2,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session, aliased
 
 from app.models.comment import Comment
+from app.models.user import User
 from app.schemas.comment_schema import CommentCreate, CommentUpdate
 
 class CommentRepository:
@@ -125,3 +126,10 @@ class CommentRepository:
     comment, _ = self.get_by_id(comment_id)
     
     self.db.delete(comment)
+  
+  def add_user_like(self, comment: Comment, user: User):
+    comment.liked_by.append(user)
+  
+  def remove_user_like(self, comment: Comment, user: User):
+    comment.liked_by.remove(user)
+    
