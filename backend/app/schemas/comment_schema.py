@@ -2,6 +2,8 @@ from datetime import datetime
 from pydantic import BaseModel
 from uuid import UUID
 
+from app.schemas.user_schema import UserSimple
+
 class CommentBase(BaseModel):
   content: str
   author_id: UUID | str
@@ -19,6 +21,8 @@ class CommentResponse(CommentBase):
   created_at: datetime
   updated_at: datetime
   reply_count: int = 0
+  author: UserSimple
+  liked_by: list[UserSimple] = []
 
   model_config = {
     "from_attributes": True,

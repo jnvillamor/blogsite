@@ -49,59 +49,56 @@ class CommentService:
   def get_comments(self, limit: int = 10, offset: int = 0) -> tuple:
     """Get a paginated list of comments."""
     comments, total = self.comment_repository.get_all_top_level_comments(limit, offset)
-    comments = [{
-      **comment.__dict__,
-      "reply_count": reply_count
-    } for comment, reply_count in comments]
+    items = [] 
+    for comment, reply_count in comments:
+      comment.__dict__['reply_count'] = reply_count
+      items.append(comment)
 
-    return comments, total
+    return items, total
 
   def get_blog_comments(self, blog_id: str, limit: int = 10, offset: int = 0) -> tuple:
     """Get comments for a specific blog post."""
     comments, total = self.comment_repository.get_top_level_comments(blog_id, limit, offset)
-    comments = [{
-      **comment.__dict__,
-      "reply_count": reply_count
-    } for comment, reply_count in comments]
-    
-    return comments, total
+    items = []
+    for comment, reply_count in comments:
+      comment.__dict__['reply_count'] = reply_count
+      items.append(comment)
 
-  def get_comment_or_404(self, comment_id: str) -> dict:
+    return items, total
+
+  def get_comment_or_404(self, comment_id: str) -> Comment:
     """Get a comment by its ID."""
     comment, reply_count = self.comment_repository.get_by_id(comment_id)
 
     if not comment:
       raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
-
-    comment = {
-      **comment.__dict__,
-      "reply_count": reply_count
-    }
-
+    
+    comment.__dict__['reply_count'] = reply_count
+    
     return comment
   
   def get_comment_replies(self, comment_id: str, limit: int = 10, offset: int = 0) -> tuple:
     """Get replies for a specific comment."""
     comment = self.get_comment_or_404(comment_id)
     replies, total = self.comment_repository.get_comment_replies(
-      comment_id=comment.get("id"),
+      comment_id=comment.id,
       limit=limit,
       offset=offset
     )
+    
+    items = [] 
+    for reply, reply_count in replies:
+      reply.__dict__['reply_count'] = reply_count
+      items.append(reply)
 
-    replies = [{
-      **reply.__dict__,
-      "reply_count": reply_count
-    } for reply, reply_count in replies]
+    return items, total
 
-    return replies, total
-  
   def update_comment(
     self,
     comment_id: str,
     data: CommentUpdate,
     author_id: str,
-  ) -> dict:
+  ) -> Comment:
     """Update an existing comment."""
     try:
       # Validate the comment data
@@ -111,7 +108,7 @@ class CommentService:
       self._validate_comment_reference(data.blog_id, author_id, data.parent_id)
       
       comment = self.get_comment_or_404(comment_id)
-      if str(comment.get("author_id")) != author_id:
+      if str(comment.author_id) != author_id:
         raise HTTPException(
           status_code=status.HTTP_403_FORBIDDEN,
           detail="You do not have permission to update this comment"
@@ -125,7 +122,8 @@ class CommentService:
       self.db_session.commit()
       self.db_session.refresh(updated_comment)
 
-      return {**updated_comment.__dict__, "reply_count": comment.get("reply_count")}
+      return updated_comment
+
     except HTTPException as http_exc:
       raise http_exc
     except Exception as e:
@@ -170,7 +168,7 @@ class CommentService:
     if parent_id:
       parent_comment = self.get_comment_or_404(parent_id)
 
-      if str(parent_comment.get("blog_id")) != blog_id:
+      if str(parent_comment.blog_id) != blog_id:
         raise HTTPException(
           status_code=status.HTTP_400_BAD_REQUEST,
           detail="Parent comment does not belong to the specified blog"
