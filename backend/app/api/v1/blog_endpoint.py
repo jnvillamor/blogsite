@@ -1,7 +1,8 @@
-from fastapi import HTTPException, status, Depends
+from fastapi import HTTPException, status, Request 
 from fastapi.routing import APIRouter
 
 from app.api.dependencies import CurrentUserDep
+from app.core.limiter import limiter
 from app.services.blog_service import BlogServiceDep
 from app.services.comment_service import CommentServiceDep 
 from app.schemas.blog_schema import BlogCreate, BlogResponse, BlogUpdate
@@ -13,11 +14,13 @@ router = APIRouter(
 )
 
 @router.post("/", response_model=BlogResponse, status_code=201)
+@limiter.limit("100/hour")
 def create_blog(
+  request: Request,
   blog_data: BlogCreate,
   blog_service: BlogServiceDep,
   current_user: CurrentUserDep,
-  ):
+):
   """Create a new blog post."""
   try:
     blog = blog_service.create_blog(blog_data, str(current_user.id))
@@ -28,7 +31,9 @@ def create_blog(
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.get("/", response_model=PaginatedResponse[BlogResponse])
+@limiter.limit("1000/hour")
 def get_blogs(
+  request: Request,
   blog_service: BlogServiceDep,
   limit: int = 5,
   offset: int = 0,
@@ -49,7 +54,12 @@ def get_blogs(
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     
 @router.get("/{blog_id}", response_model=BlogResponse, status_code=200)
-def get_blog_by_id(blog_id: str, blog_service: BlogServiceDep):
+@limiter.limit("1000/hour")
+def get_blog_by_id(
+  blog_id: str, 
+  request: Request,
+  blog_service: BlogServiceDep
+):
   """Get a blog by its ID."""
   try:
     blog = blog_service.get_blog_or_404(blog_id)
@@ -61,8 +71,10 @@ def get_blog_by_id(blog_id: str, blog_service: BlogServiceDep):
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
       
 @router.put("/{blog_id}", response_model=BlogResponse, status_code=200)
+@limiter.limit("1000/hour")
 def update_blog(
   blog_id: str,
+  request: Request,
   blog_data: BlogUpdate,
   blog_service: BlogServiceDep,
   current_user: CurrentUserDep,
@@ -77,8 +89,10 @@ def update_blog(
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.delete("/{blog_id}", status_code=200)
+@limiter.limit("1000/hour")
 def delete_blog(
   blog_id: str,
+  request: Request,
   blog_service: BlogServiceDep,
   current_user: CurrentUserDep,
 ):
@@ -92,8 +106,10 @@ def delete_blog(
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.post("/{blog_id}/comments", response_model=CommentResponse, status_code=201)
+@limiter.limit("1000/hour")
 def create_comment(
   blog_id: str,
+  request: Request,
   comment_data: CommentCreate,
   comment_service: CommentServiceDep,
   current_user: CurrentUserDep,
@@ -109,8 +125,10 @@ def create_comment(
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.get("/{blog_id}/comments", response_model=PaginatedResponse[CommentResponse], status_code=200)
+@limiter.limit("1000/hour")
 def get_comments(
   blog_id: str,
+  request: Request,
   comment_service: CommentServiceDep,
   limit: int = 5,
   offset: int = 0,
@@ -131,8 +149,10 @@ def get_comments(
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.put("/{blog_id}/toggle-like", response_model=BlogResponse, status_code=200)
+@limiter.limit("1000/hour")
 def toggle_like_blog(
   blog_id: str,
+  request: Request,
   blog_service: BlogServiceDep,
   current_user: CurrentUserDep
 ):
